@@ -17,3 +17,8 @@ type Invoice struct {
 	Amount int    `json:"value"`
 	PayReq string `json:"payment_request"`
 }
+
+//ReqInvoice represents a lightning invoice received from vue frontend
+type ReqInvoice struct {
+	Body string `json:"body"`
+}
