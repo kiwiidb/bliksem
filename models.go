@@ -14,8 +14,20 @@ type BliksemService struct {
 //Invoice represents a lightning invoice
 type Invoice struct {
 	Memo   string `json:"memo"`
-	Amount int    `json:"value"`
+	Amount int64  `json:"value"`
 	PayReq string `json:"payment_request"`
+}
+
+//StringInvoice represents a lightning invoice where all fields are strings
+type StringInvoice struct {
+	Memo   string `json:"memo"`
+	Amount string `json:"value"`
+	PayReq string `json:"payment_request"`
+}
+
+//LNDStreamInvoice represents an invoice received from LND stream of settled invoices
+type LNDStreamInvoice struct {
+	Result StringInvoice `json:"result"`
 }
 
 //ReqInvoice represents a lightning invoice received from vue frontend

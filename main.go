@@ -6,9 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -45,7 +44,9 @@ func handleAddInvoice(w http.ResponseWriter, r *http.Request, service *BliksemSe
 	}
 	fmt.Println(invBody.Body)
 	var inv Invoice
-	err = json.Unmarshal([]byte("{"+invBody.Body+"}"), &inv)
+	invBytes := "{" + invBody.Body + "}"
+	fmt.Println(invBytes)
+	err = json.Unmarshal([]byte(invBytes), &inv)
 	if err != nil {
 		logrus.WithError(err).Fatal("here")
 	}

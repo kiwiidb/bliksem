@@ -51,9 +51,10 @@ func (service *BliksemService) Initialize() {
 	service.macaroon = getMacaroon()
 }
 
-func (service BliksemService) getNewInvoice(amount int) Invoice {
+func (service BliksemService) getNewInvoice(amount int64) Invoice {
 	inv := Invoice{Amount: amount}
 	invoiceBytes, err := json.Marshal(inv)
+	fmt.Println(string(invoiceBytes))
 	if err != nil {
 		logrus.WithError(err).Fatal()
 	}
@@ -86,12 +87,11 @@ func (service BliksemService) streamInvoices() {
 		logrus.WithError(err).Fatal()
 	}
 	req.Header.Set("Grpc-Metadata-macaroon", service.macaroon)
-	fmt.Println("here")
 	res, err := service.client.Do(req)
 	if err != nil {
 		logrus.WithError(err).Fatal()
 	}
-	inv := &Invoice{}
+	inv := &LNDStreamInvoice{}
 	for {
 		err := json.NewDecoder(res.Body).Decode(&inv)
 		if err != nil {
