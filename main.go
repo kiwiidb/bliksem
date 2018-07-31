@@ -6,18 +6,33 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/koding/multiconfig"
+
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	configFile = "secrets/conf.json"
+)
+
 func main() {
+	conf := Config{}
+	m := multiconfig.NewWithPath(configFile)
+	err := m.Load(&conf)
+	if err != nil {
+		logrus.WithError(err).Fatal("Could not load config!")
+	}
 	service := &BliksemService{}
-	service.Initialize()
+	service.Initialize(conf)
+
+	go startSSHTunnel(conf)
+
 	router := mux.NewRouter()
 	router.HandleFunc("/addinvoice",
 		func(w http.ResponseWriter, r *http.Request) { handleAddInvoice(w, r, service) })
 	logrus.Info("Starting Server")
-	logrus.Fatal(http.ListenAndServe("localhost:8081", router))
+	logrus.Fatal(http.ListenAndServe(conf.Port, router))
 }
 
 func enableCors(w *http.ResponseWriter) {

@@ -13,8 +13,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func newTLSClient() *http.Client {
-	caCert, _ := ioutil.ReadFile("secrets/tls.cert")
+const (
+	serviceInvoiceRoute    = "/v1/invoices"
+	serviceInvoiceSubRoute = "/v1/invoices/subscribe"
+)
+
+func newTLSClient(certFile string) *http.Client {
+	caCert, _ := ioutil.ReadFile(certFile)
 	pool := x509.NewCertPool()
 	pool.AppendCertsFromPEM(caCert)
 
@@ -32,8 +37,8 @@ func newTLSClient() *http.Client {
 	return &client
 }
 
-func getMacaroon() string {
-	macaroonbytes, err := ioutil.ReadFile("secrets/admin.macaroon")
+func getMacaroon(macaroonFile string) string {
+	macaroonbytes, err := ioutil.ReadFile(macaroonFile)
 	if err != nil {
 		logrus.WithError(err).Fatal()
 	}
@@ -45,10 +50,10 @@ func getMacaroon() string {
 }
 
 //Initialize url, macaroon
-func (service *BliksemService) Initialize() {
-	service.client = newTLSClient()
-	service.url = "https://localhost:8080"
-	service.macaroon = getMacaroon()
+func (service *BliksemService) Initialize(conf Config) {
+	service.client = newTLSClient(conf.TLSPath)
+	service.url = conf.LNDRestAddr
+	service.macaroon = getMacaroon(conf.MacaroonPath)
 }
 
 func (service BliksemService) getNewInvoice(amount int64) Invoice {
@@ -58,7 +63,7 @@ func (service BliksemService) getNewInvoice(amount int64) Invoice {
 	if err != nil {
 		logrus.WithError(err).Fatal()
 	}
-	req, err := http.NewRequest("POST", service.url+"/v1/invoices", bytes.NewBuffer(invoiceBytes))
+	req, err := http.NewRequest("POST", service.url+serviceInvoiceRoute, bytes.NewBuffer(invoiceBytes))
 	if err != nil {
 		logrus.WithError(err).Fatal()
 	}
@@ -82,7 +87,7 @@ func (service BliksemService) getNewInvoice(amount int64) Invoice {
 }
 
 func (service BliksemService) streamInvoices() {
-	req, err := http.NewRequest("GET", service.url+"/v1/invoices/subscribe", nil)
+	req, err := http.NewRequest("GET", service.url+serviceInvoiceSubRoute, nil)
 	if err != nil {
 		logrus.WithError(err).Fatal()
 	}
