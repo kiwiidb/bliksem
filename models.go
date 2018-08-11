@@ -9,6 +9,7 @@ type BliksemService struct {
 	client   *http.Client
 	url      string
 	macaroon string
+	invoiceChan chan Invoice
 }
 
 //Invoice represents a lightning invoice

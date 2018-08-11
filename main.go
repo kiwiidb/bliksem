@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/koding/multiconfig"
 
@@ -27,10 +28,17 @@ func main() {
 	service.Initialize(conf)
 
 	go startSSHTunnel(conf)
+	//Wait a bit for the tunnel to start
+	time.Sleep(time.Second)
+	go service.streamInvoicesToChannel()
 
 	router := mux.NewRouter()
 	router.HandleFunc("/addinvoice",
 		func(w http.ResponseWriter, r *http.Request) { handleAddInvoice(w, r, service) })
+
+	router.HandleFunc("/settledinvoice",
+		func(w http.ResponseWriter, r *http.Request) { handleSettledInvoice(w, r, service) })
+
 	logrus.Info("Starting Server")
 	logrus.Fatal(http.ListenAndServe(conf.Port, router))
 }
@@ -71,4 +79,43 @@ func handleAddInvoice(w http.ResponseWriter, r *http.Request, service *BliksemSe
 		logrus.WithError(err).Fatal()
 	}
 	w.Write(toSendBytes)
+}
+
+func handleSettledInvoice(w http.ResponseWriter, r *http.Request, service *BliksemService) {
+	enableCors(&w)
+	if (*r).Method == "OPTIONS" {
+		return
+	}
+
+	bytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		logrus.WithError(err).Fatal()
+	}
+	fmt.Println(string(bytes))
+	var invBody ReqInvoice
+	err = json.Unmarshal(bytes, &invBody)
+	if err != nil {
+		logrus.WithError(err).Fatal()
+	}
+	fmt.Println(invBody.Body)
+	var inv Invoice
+	invBytes := "{" + invBody.Body + "}"
+	fmt.Println(invBytes)
+	err = json.Unmarshal([]byte(invBytes), &inv)
+	if err != nil {
+		logrus.WithError(err).Fatal("here is an error")
+	}
+	for {
+		select {
+		case toCompareInv := <-service.invoiceChan:
+			if toCompareInv.PayReq == inv.PayReq {
+				logrus.Info("here!")
+				w.Write([]byte("true"))
+				return
+			}
+		default:
+			w.Write([]byte("false"))
+			return
+		}
+	}
 }

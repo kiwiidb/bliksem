@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/sirupsen/logrus"
 )
@@ -54,6 +55,7 @@ func (service *BliksemService) Initialize(conf Config) {
 	service.client = newTLSClient(conf.TLSPath)
 	service.url = conf.LNDRestAddr
 	service.macaroon = getMacaroon(conf.MacaroonPath)
+	service.invoiceChan = make(chan Invoice, 1000)
 }
 
 func (service BliksemService) getNewInvoice(amount int64) Invoice {
@@ -86,7 +88,8 @@ func (service BliksemService) getNewInvoice(amount int64) Invoice {
 
 }
 
-func (service BliksemService) streamInvoices() {
+func (service BliksemService) streamInvoicesToChannel() {
+	logrus.Info("Starting invoice stream")
 	req, err := http.NewRequest("GET", service.url+serviceInvoiceSubRoute, nil)
 	if err != nil {
 		logrus.WithError(err).Fatal()
@@ -99,9 +102,19 @@ func (service BliksemService) streamInvoices() {
 	inv := &LNDStreamInvoice{}
 	for {
 		err := json.NewDecoder(res.Body).Decode(&inv)
+		fmt.Println("payment received!")
 		if err != nil {
 			logrus.WithError(err).Fatal()
 		}
 		fmt.Println(inv)
+		amt, err := strconv.Atoi(inv.Result.Amount)
+		if err != nil {
+			logrus.WithError(err).Fatal()
+		}
+		memo := inv.Result.Memo
+		payR := inv.Result.PayReq
+
+		invoice := Invoice{Amount: int64(amt), Memo: memo, PayReq: payR}
+		service.invoiceChan <- invoice
 	}
 }
