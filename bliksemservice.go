@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -60,8 +59,8 @@ func (service *BliksemService) Initialize(conf Config) {
 
 func (service BliksemService) getNewInvoice(amount int64) Invoice {
 	inv := Invoice{Amount: amount}
+	logrus.WithField("invoice", inv).Info("Requesting invoice to LND backend")
 	invoiceBytes, err := json.Marshal(inv)
-	fmt.Println(string(invoiceBytes))
 	if err != nil {
 		logrus.WithError(err).Fatal()
 	}
@@ -78,7 +77,7 @@ func (service BliksemService) getNewInvoice(amount int64) Invoice {
 	if err != nil {
 		logrus.WithError(err).Fatal()
 	}
-	fmt.Println(string(body))
+	logrus.WithField("response", string(body)).Info("Response from LND backend")
 	var receivedInv Invoice
 	err = json.Unmarshal(body, &receivedInv)
 	if err != nil {
@@ -102,11 +101,11 @@ func (service BliksemService) streamInvoicesToChannel() {
 	inv := &LNDStreamInvoice{}
 	for {
 		err := json.NewDecoder(res.Body).Decode(&inv)
-		fmt.Println("payment received!")
+		logrus.Info("Payment received")
 		if err != nil {
 			logrus.WithError(err).Fatal()
 		}
-		fmt.Println(inv)
+		logrus.WithField("invoice", inv).Info("This invoice was recently paid")
 		amt, err := strconv.Atoi(inv.Result.Amount)
 		if err != nil {
 			logrus.WithError(err).Fatal()

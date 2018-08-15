@@ -61,7 +61,7 @@ func startSSHTunnel(conf Config) {
 	if err != nil {
 		logrus.Fatalf("net.Listen failed: %v", err)
 	}
-	logrus.Info("Startin tunnel")
+	logrus.Info("Starting tunnel")
 	for {
 		// Setup localConn (type net.Conn)
 		localConn, err := localListener.Accept()
