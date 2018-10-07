@@ -58,7 +58,6 @@ func handleSettledInvoice(w http.ResponseWriter, r *http.Request, service *Bliks
 		toCompareInv := <-service.invoiceChan
 		if toCompareInv.PayReq == string(payreq) {
 			c.WriteMessage(websocket.TextMessage, []byte("true"))
-			return
 		}
 	}
 }
